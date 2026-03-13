@@ -19,6 +19,10 @@ float dx;
 float radFactor = 0.8;
 float minCirc = 0.15;
 
+float sf = 0.01;
+float tf = 0.04;
+float maxOffset = 5;
+
 int bands = rez;
 float[] spectrum = new float[bands];
 float[] sum = new float[bands];
@@ -31,15 +35,15 @@ public void setup() {
     frameRate(60);
     smooth(4);
     fill(255);
-    stroke(255);
-    strokeWeight(5);
+    noStroke();
+    blendMode(ADD);
 
     dx = width * 1.0 / rez;
     yRez = height / rez;
 
     circles = new float[rez][yRez];
 
-    generator = new OpenSimplexNoiseKS();
+    generator = new OpenSimplexNoiseKS(420);
 
     minim = new Minim(this);
     track = minim.getLineIn(Minim.STEREO, 2048);
@@ -50,11 +54,26 @@ public void setup() {
 }
 
 void drawCircles() {
+
     for(int i = 0; i < rez; i++) {
         for (int j = 0; j < yRez; j++) {
-            circle(dx / 2.0 + i * dx, dx / 2.0 + (j + 2) * dx - 5, dx * radFactor * circles[i][j]);
+            float x = dx / 2.0 + i * dx;
+            float y = dx / 2.0 + (j + 2) * dx - 5;
+
+            if (circles[i][j] > 0.3) {
+                for (int col = 0; col < 3; col++) {
+                    fill(col == 0 ? 255 : 0, col == 1 ? 255 : 0, col == 2 ? 255 : 0);
+                    float xRand = (float)(generator.eval(30 * col + x * sf, y * sf, frameCount * tf));
+                    float yRand = (float)(generator.eval(30 * col + x * sf, 30 + y * sf, frameCount * tf));
+                    circle(x + xRand * maxOffset, y + yRand * maxOffset, dx * radFactor * circles[i][j]);
+                }
+            }
+            else {
+                fill(255);
+                circle(x, y, dx * radFactor * circles[i][j]);
+            }
             if (circles[i][j] > 0) {
-                circles[i][j] = max(0, circles[i][j] * 0.85 - 0.07);
+                circles[i][j] = max(0, circles[i][j] * 0.85 - 0.06);
             }
             if (circles[i][j] < minCirc) {
                 circles[i][j] = 0;
@@ -65,6 +84,11 @@ void drawCircles() {
 
 
 void setCircle(int i, int j) {
+    if (i % 2 == 0) {
+        i = i / 2;
+    } else {
+        i = rez - 1 - i / 2;
+    }
     circles[i][j] = 1;
 }
 
